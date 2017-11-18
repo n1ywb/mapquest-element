@@ -1,13 +1,34 @@
 <link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../polymer/lib/utils/async.html">
+<link rel="import" href="mapquest-styles.html">
+
+<script src="https://api.mqcdn.com/sdk/mapquest-js/v1.2.0/mapquest.js"></script>
 
 <dom-module id="mapquest-element">
   <template>
+    <style is="custom-style" include="mapquest-styles"></style>
+
     <style>
       :host {
         display: block;
+        height: 256px;
+        width: 256px;
+        box-sizing: border-box;
+      }
+
+      *, *:before, *:after {
+        box-sizing: inherit;
+      }
+
+      #map {
+        z-index: 1;
+        height: 100%;
+        width: 100%;
       }
     </style>
-    <h2>Hello [[prop1]]!</h2>
+
+    <div id=map></div>
+
   </template>
 
   <script>
@@ -23,12 +44,54 @@
       static get is() { return 'mapquest-element'; }
       static get properties() {
         return {
-          prop1: {
+          apiKey: {
             type: String,
-            value: 'mapquest-element'
+            observer: '_apiKeyChanged'
+          },
+
+          lat: {
+            type: Number,
+          },
+
+          lon: {
+            type: Number,
+          },
+
+          _map: {
+            type: Object,
           }
         };
       }
+
+      static get observers() {
+        return [
+          '_coordChanged(_map, lat, lon)'
+        ]
+      }
+
+      _apiKeyChanged(apiKey) {
+        L.mapquest.key = apiKey;
+      }
+
+      _coordChanged(map, lat, lon) {
+        if (!(map && lat && lon)) return;
+        Polymer.Async.animationFrame.run(() => {
+          map.setView([lat, lon], 16);
+          L.marker([lat, lon]).addTo(map);
+        })
+      }
+
+      ready() {
+        super.ready();
+        Polymer.Async.animationFrame.run(() => {
+          this._map = L.mapquest.map(this.$.map, {
+            center: [0, 0],
+            layers: L.mapquest.tileLayer('map'),
+            zoom: 1
+          });
+        })
+      }
+
     }
 
     window.customElements.define(MapquestElement.is, MapquestElement);
